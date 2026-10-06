@@ -53,11 +53,19 @@ export function page(title: string, body: SafeHtml, actorName?: string): string 
       textarea { width: 100%; box-sizing: border-box; }
       .claim { border-left: 3px solid #888; padding-left: 1rem; margin: 1.5rem 0; }
       .evidence { margin: 0.75rem 0 0.75rem 1rem; padding: 0.5rem 0.75rem; border-radius: 4px; }
-      .evidence.supports { background: #e6f3ef; }
-      .evidence.challenges { background: #fbeae3; }
+      .evidence.supports { background: #e6f3ef; color: #0f1f1a; }
+      .evidence.challenges { background: #fbeae3; color: #2a1510; }
+      .evidence .meta { color: inherit; opacity: 0.75; }
       .meta { font-size: 0.85rem; color: #555; font-family: ui-monospace, monospace; }
       .error { color: #a02020; }
       .empty-state { padding: 2rem 0; }
+      /* Fixed-colour badges (.evidence) carry their own text colour above so
+         they stay readable against either scheme; .meta's default colour is
+         only legible on a light background. */
+      @media (prefers-color-scheme: dark) {
+        .meta { color: #b9b9b9; }
+        .error { color: #ff8a73; }
+      }
     </style>
   </head>
   <body>

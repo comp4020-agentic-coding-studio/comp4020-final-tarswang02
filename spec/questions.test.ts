@@ -107,3 +107,13 @@ it("answers 404 for an unknown question instead of an empty 200", async () => {
   const res = await fetch(new URL("/questions/does-not-exist", baseUrl));
   expect(res.status).toBe(404);
 });
+
+it("re-shows the question form with an inline error and the typed draft on a too-short title", async () => {
+  const res = await post("/questions", { title: "ab", body: "some detail" }, "");
+  expect(res.status).toBe(400);
+  const html = await res.text();
+  expect(html).toContain("<h1>Questions</h1>");
+  expect(html).toMatch(/class="error"/);
+  expect(html).toContain("ab");
+  expect(html).toContain("some detail");
+});

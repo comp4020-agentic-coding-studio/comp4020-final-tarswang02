@@ -72,9 +72,8 @@ function loadQuestionDetail(id: string): QuestionDetail | undefined {
   return { ...question, claims };
 }
 
-function listQuestions(ctx: Context): void {
-  const actor = resolveActor(ctx.req, ctx.res);
-  const rows = db
+function fetchQuestionSummaries(): QuestionSummary[] {
+  return db
     .prepare(
       `SELECT q.id, q.title, q.created_at, a.name AS actor_name,
               (SELECT COUNT(*) FROM claims c WHERE c.question_id = q.id) AS claim_count
@@ -82,7 +81,11 @@ function listQuestions(ctx: Context): void {
        ORDER BY q.created_at DESC`,
     )
     .all() as unknown as QuestionSummary[];
-  send(ctx.res, 200, renderQuestionList(rows, actor.name));
+}
+
+function listQuestions(ctx: Context): void {
+  const actor = resolveActor(ctx.req, ctx.res);
+  send(ctx.res, 200, renderQuestionList(fetchQuestionSummaries(), actor.name));
 }
 
 router.get("/", async (ctx) => listQuestions(ctx));
@@ -105,7 +108,14 @@ router.post("/questions", async (ctx) => {
     redirect(ctx.res, `/questions/${id}`);
   } catch (err) {
     if (err instanceof ValidationError) {
-      return send(ctx.res, 400, `Bad request: ${err.message}`);
+      return send(
+        ctx.res,
+        400,
+        renderQuestionList(fetchQuestionSummaries(), actor.name, err.message, {
+          title: form.title ?? "",
+          body: form.body ?? "",
+        }),
+      );
     }
     throw err;
   }

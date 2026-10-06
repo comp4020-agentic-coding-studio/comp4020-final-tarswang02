@@ -8,17 +8,30 @@ export interface QuestionSummary {
   claim_count: number;
 }
 
-export function renderQuestionList(questions: QuestionSummary[], actorName: string): string {
+export function renderQuestionList(
+  questions: QuestionSummary[],
+  actorName: string,
+  error?: string,
+  draft?: { title: string; body: string },
+): string {
   const body = html`
     <h1>Questions</h1>
     <form method="post" action="/questions">
+      ${error ? html`<p class="error">${error}</p>` : raw("")}
       <p>
         <label for="q-title">Question</label><br />
-        <input id="q-title" name="title" required maxlength="200" style="width:100%" />
+        <input
+          id="q-title"
+          name="title"
+          required
+          maxlength="200"
+          style="width:100%"
+          value="${draft?.title ?? ""}"
+        />
       </p>
       <p>
         <label for="q-body">Detail (optional)</label><br />
-        <textarea id="q-body" name="body" rows="3" maxlength="4000"></textarea>
+        <textarea id="q-body" name="body" rows="3" maxlength="4000">${draft?.body ?? ""}</textarea>
       </p>
       <button type="submit">Ask</button>
     </form>
