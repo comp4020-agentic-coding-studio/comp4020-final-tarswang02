@@ -44,38 +44,21 @@ export function page(title: string, body: SafeHtml, actorName?: string): string 
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${title}</title>
     <style>
-      /* Palette: a dark archival room at night (docs/ART_DIRECTION.md). The
-         light variant is this project's own extrapolation of the same
-         accent hues (the brief's provisional palette targets dark mode
-         specifically) — tune in the browser, not a finished claim. */
+      /* Keep the evidence-room palette consistent regardless of the visitor's
+         OS theme. The previous light default hid the intended art direction. */
       :root {
-        color-scheme: light dark;
-        --bg: #fbf8f2;
-        --surface: #f2ece0;
-        --border: #d8d0c0;
-        --text: #1c2430;
-        --meta: #5b6472;
-        --support: #2e6b74;
-        --support-bg: #e3f1f0;
-        --challenge: #9c4a24;
-        --challenge-bg: #fbeae3;
-        --unreviewed: #5b6472;
-        --error: #a02020;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #0b1118;
-          --surface: #17232e;
-          --border: #2a3744;
-          --text: #e9e4d8;
-          --meta: #a6b1ba;
-          --support: #7cbac4;
-          --support-bg: rgba(124, 186, 196, 0.14);
-          --challenge: #d89978;
-          --challenge-bg: rgba(216, 153, 120, 0.14);
-          --unreviewed: #a6b1ba;
-          --error: #ff8a73;
-        }
+        color-scheme: dark;
+        --bg: #0b1118;
+        --surface: #17232e;
+        --border: #2a3744;
+        --text: #e9e4d8;
+        --meta: #a6b1ba;
+        --support: #7cbac4;
+        --support-bg: rgba(124, 186, 196, 0.14);
+        --challenge: #d89978;
+        --challenge-bg: rgba(216, 153, 120, 0.14);
+        --unreviewed: #a6b1ba;
+        --error: #ff8a73;
       }
       body {
         font-family: system-ui, sans-serif;
