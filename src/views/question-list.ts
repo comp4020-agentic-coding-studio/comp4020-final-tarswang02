@@ -53,7 +53,7 @@ export function renderQuestionList(
                   questions
                     .map(
                       (q) =>
-                        html`<li>
+                        html`<li data-question-id="${q.id}">
                           <a href="/questions/${q.id}">${q.title}</a>
                           <span class="meta"
                             >— ${q.claim_count} claim(s), asked by ${q.actor_name} at

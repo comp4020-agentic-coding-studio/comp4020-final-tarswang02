@@ -15,6 +15,31 @@
   const scope = region.dataset.liveScope;
   const questionId = region.dataset.questionId;
 
+  function mergeQuestions(next) {
+    const incoming = next.querySelector(".question-list");
+    if (!incoming) return;
+    region.querySelector(".empty-state")?.remove();
+    let list = region.querySelector(".question-list");
+    if (!list) {
+      region.append(incoming.cloneNode(true));
+      return;
+    }
+    const existing = new Map(
+      [...list.querySelectorAll("[data-question-id]")].map((node) => [node.dataset.questionId, node]),
+    );
+    for (const item of incoming.querySelectorAll("[data-question-id]")) {
+      const old = existing.get(item.dataset.questionId);
+      if (!old) {
+        // Newest-first order while retaining the existing anchors and focus.
+        list.prepend(item.cloneNode(true));
+      } else {
+        const oldMeta = old.querySelector(".meta");
+        const newMeta = item.querySelector(".meta");
+        if (oldMeta && newMeta) oldMeta.textContent = newMeta.textContent;
+      }
+    }
+  }
+
   function mergeQuestion(next) {
     const known = new Map(
       [...region.querySelectorAll("[data-claim-id]")].map((node) => [node.dataset.claimId, node]),
@@ -65,7 +90,7 @@
       const documentCopy = new DOMParser().parseFromString(await response.text(), "text/html");
       const next = documentCopy.querySelector("#live-records[data-live-scope]");
       if (!next || !region.isConnected) throw new Error("snapshot missing live records");
-      if (scope === "questions") region.innerHTML = next.innerHTML;
+      if (scope === "questions") mergeQuestions(next);
       else mergeQuestion(next);
       region.dataset.since = next.dataset.since;
     } catch {

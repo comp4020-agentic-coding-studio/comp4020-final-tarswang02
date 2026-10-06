@@ -99,6 +99,10 @@ export function recordEvent(type: string, payload: unknown, actorId: string): nu
     "INSERT INTO events (type, payload, actor_id, created_at) VALUES (?, ?, ?, ?)",
   ).run(type, JSON.stringify(payload), actorId, createdAt);
   const event = { seq: Number(result.lastInsertRowid), type, payload, created_at: createdAt };
-  for (const listener of eventListeners) listener(event);
+  // A disconnected SSE response must never turn an already-committed write
+  // into a 500 (which could make the caller retry and duplicate its record).
+  for (const listener of eventListeners) {
+    try { listener(event); } catch { eventListeners.delete(listener); }
+  }
   return event.seq;
 }

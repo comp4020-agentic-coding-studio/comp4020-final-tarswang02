@@ -106,7 +106,7 @@ function renderClaim(claim: ClaimRow, reviewDraft?: string): string {
         <button type="submit">Add evidence</button>
       </form>
     </details>
-    <details class="add-review">
+    <details class="add-review" ${reviewDraft === undefined ? raw("") : raw("open")}>
       <summary>Record a review (not a verification)</summary>
       <form method="post" action="/claims/${claim.id}/review">
         <input type="hidden" name="expected_version" value="${claim.version}" />

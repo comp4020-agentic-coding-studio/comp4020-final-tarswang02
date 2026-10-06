@@ -50,6 +50,7 @@ it("preserves a stale review draft, rejects overwrite, and records both accepted
   expect(conflictPage).toContain(firstReason);
   expect(conflictPage).toContain(secondReason);
   expect(conflictPage).toContain('name="expected_version" value="2"');
+  expect(conflictPage).toContain('<details class="add-review" open>');
 
   const retry = await post(`/claims/${claimId}/review`, { expected_version: "2", reason: secondReason }, bob);
   expect(retry.status).toBe(303);

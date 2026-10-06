@@ -68,6 +68,7 @@ export function page(title: string, body: SafeHtml, actorName?: string): string 
         line-height: 1.5;
         background: var(--bg);
         color: var(--text);
+        overflow-wrap: anywhere;
       }
       h1 {
         font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
@@ -115,7 +116,7 @@ export function page(title: string, body: SafeHtml, actorName?: string): string 
       /* Hover/press feedback below is scoped to :hover/:active only — never
          to :focus-visible, so tabbing through the page never animates, per
          the motion rules ("keyboard operations respond immediately"). */
-      @media (prefers-reduced-motion: no-preference) {
+      @media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
         button, .question-list a, .evidence a {
           transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1), opacity 150ms ease;
         }
@@ -237,11 +238,8 @@ export function page(title: string, body: SafeHtml, actorName?: string): string 
       .meta.kicker { text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem; }
       .error { color: var(--error); }
       .empty-state { padding: 2rem 0; }
-      /* "New committed evidence may briefly illuminate its real link, then
-         settle" — opacity-only (no spatial movement), and skipped entirely
-         under reduced motion. There is no live push yet (Gate 3), so this
-         only fires for evidence the viewer just submitted and was
-         redirected back to read. */
+      /* A newly committed evidence record briefly illuminates its real link;
+         live arrivals and the writer's redirect both use the same cue. */
       .evidence.is-new { animation: illuminate 280ms cubic-bezier(0.23, 1, 0.32, 1); }
       @keyframes illuminate {
         from { opacity: 0.6; }
