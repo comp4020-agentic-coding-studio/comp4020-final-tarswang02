@@ -1,6 +1,6 @@
 # Proofroom — working rules for coding agents
 
-Read the current [Final Project brief](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/assessments/final-project/), [Crit 8 brief](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/crits/08-its-alive/), `spec/README.md`, `docs/PRODUCT_REQUIREMENTS.md`, `docs/ART_DIRECTION.md`, and `docs/IMPLEMENTATION_PLAN.md` before implementing. The course and starter contracts override suggestions here. The student owns product judgement and authors the assessed arguments in `README.md`, `PROCESS.md`, and (for COMP8020) `research-note.md`; never invent their experience or citations.
+Read the current [Final Project brief](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/assessments/final-project/), [Crit 8 brief](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/crits/08-its-alive/), `spec/README.md`, `docs/PRODUCT_REQUIREMENTS.md`, `docs/ART_DIRECTION.md`, and `docs/IMPLEMENTATION_PLAN.md` before implementing. The course and starter contracts override suggestions here. The student owns product judgement; AI may draft assessed documents at the student's direction from verified decisions, code and commits, but must mark uncertainty and never invent the student's experience or citations.
 
 ## Product thesis
 

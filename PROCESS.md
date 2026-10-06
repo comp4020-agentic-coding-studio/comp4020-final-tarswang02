@@ -1,20 +1,27 @@
-# Process overview
+# Process overview — Proofroom, Crit 8 working version
 
-<!-- TEMPLATE: replace everything in this file with your own account, this
-     comment included --- `pnpm check:evidence` fails while it's still here. -->
+This account distinguishes the repository's observed work from deployment and classroom outcomes that have not yet been verified. It is an AI-assisted reconstruction from the brief, working rules, decision record, checks and commit history, not a claim about a private experience outside that record. The [Final Project brief](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/assessments/final-project/) asks for a multi-user, real-time, persistent site; [Crit 8](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/crits/08-its-alive/) asks first for a deployed, durable core interaction and an initial argument for what good means. The student chose a room where agents on the same project can align on claims and evidence. That choice ruled out treating a chat transcript, an optimistic completion flag, or a visual graph alone as the product.
 
-How you got from the brief to the harness, agentic workflow and stack behind
-this app, told however suits the work. The
-[final project brief](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/assessments/final-project/#what-you-submit)
-says what it covers and how long it runs.
+## From the brief to a harness
 
-Markers follow the links you give them; they don't trawl the repo for evidence
-you didn't point at. A link to the record is one whose text is the commit hash,
-and it can sit anywhere in a sentence:
-[`a1b2c3d`](https://github.com/YOUR-ORG/YOUR-REPO/commit/a1b2c3d) for one
-commit, or
-[`a1b2c3d...e4f5a6b`](https://github.com/YOUR-ORG/YOUR-REPO/compare/a1b2c3d...e4f5a6b)
-for a range.
+The central product question became: how can a later agent or human inspect the basis of an earlier agent's statement? In `CLAUDE.md` that question became constraints: every consequential record needs attribution and time; evidence has an explicit *supports* or *challenges* relationship; an uploaded claim is not automatically verified; and corrections should not silently overwrite the old record. The scope is intentionally narrower than a general collaboration suite. The API and browser must share one server-side record, but external clients need to opt in and authenticate; the course Claude token is never an app credential. This kept “multiple agents” from becoming a misleading promise that autonomous tools magically read a shared mind.
 
-`pnpm check:evidence` checks that this comment is gone and that every commit you
-link exists in this repo. Whether the account is any good is the marker's call.
+The first major decision is recorded separately in [ADR 0001](docs/decisions/0001-stack.md) and began in [`ded8b88`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tarswang02/commit/ded8b88). With one 256 MB Fly machine and one `/data` volume, the chosen stack was Node's HTTP and SQLite facilities plus `marked` for server-rendered Markdown. Express and `better-sqlite3` were considered, but the native add-on would have introduced a remote-build and architecture risk for a small route set. The cost of the chosen path is handwritten routing, cookie handling and escaping, and reliance on Node's experimental SQLite API. Those costs are visible in the modules and in the decision record; “fewer dependencies” is not a free quality claim.
+
+## The core grew in checkable slices
+
+The durable schema and defensive primitives landed in [`ad315de`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tarswang02/commit/ad315de). The browser routes for questions, claims and evidence followed in [`b915b89`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tarswang02/commit/b915b89), then HTTP-level checks in [`5de8380`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tarswang02/commit/5de8380). This order matters. It produced a trace a stranger could leave and retrieve before spending effort on agent integration or a more expressive interface. The checks exercise the starter's `/` and `/readme/` contracts alongside the project's own question–claim–evidence path. Local restart testing showed the SQLite record was still available after the process restarted; it did not prove Fly volume persistence after redeploy.
+
+The next slice, [`7c1c835`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tarswang02/commit/7c1c835), made the shared record available to an external HTTP client. A demonstration client and API tests read, wrote and re-read records with server-derived actor attribution. This is a purposeful integration seam rather than an MCP adapter built for its own sake. The visible API is documented in [docs/api.md](docs/api.md). The final project's two-person real-time contract remains open: two bots using one API would not satisfy the requirement for two people in separate browsers, and refresh-based visibility is not real-time delivery.
+
+## Corrections changed the product, not just the screenshot
+
+Local use exposed a validation problem: a failed question submission lost the visitor's draft. [`d1759a2`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tarswang02/commit/d1759a2) preserved the entered fields on error and improved the dark palette's contrast. Later, [`a6087f0`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tarswang02/commit/a6087f0) labelled the claim input and hardened actor rename handling. These are small changes, but they express a useful agentic workflow: inspect the actual browser path, describe the failure in user terms, then put the correction in code and checks instead of merely asking an agent to “make it better.” The repository's existing tests and working rules are the durable record of that correction.
+
+The first functional page also looked too much like a plain white form. That feedback was not a missing stylesheet bug; the visual design had been documented but not implemented. [`4c96d91`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tarswang02/commit/4c96d91) recorded a more precise art direction: a quiet evidence room, editorial titles and fine connections drawn only from real claim–evidence relationships. [`aea782f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tarswang02/commit/aea782f) translated it into page hierarchy, labelled support/challenge branches, a desktop action rail, mobile ordering and restrained motion. The correction kept a readable list and forms rather than making the network the only way to use the app. Browser checks covered desktop and 390 px mobile layout, keyboard access to the evidence form and the create–return path; they did not test every reduced-motion setting or a remote multi-user session.
+
+The audience was also sharpened through conversation. [`d3f06d8`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tarswang02/commit/d3f06d8) records the student's clarification that the primary users are agents trying to complete the *same project* and align their understanding, with humans inspecting and contributing. That changes the meaning of “good”: a generic task board could show who owns what, but this room needs to preserve why a claim should or should not be trusted. The [W3C provenance primer](https://www.w3.org/TR/prov-primer/) offers a useful vocabulary for record, activity and responsible agent; Proofroom borrows the attribution question, not a claim to implement W3C PROV.
+
+## Present boundary and next correction
+
+At this writing, local `pnpm check` has passed type checking and nine tests. The browser path and a local restart have been exercised, but deployment, Fly volume persistence, public access and the final real-time contract are not established by those checks. The next evidence must come from the actual Fly URL: a new visitor creates a trace, leaves, returns after a restart or redeploy, and sees the same record. After Crit 8, two separate browsers must show distinct actors and receive committed changes without a reload. The implementation should then add a focused spec for that promise and a decision record for the transport, rather than quietly letting “shared state” stand in for “real-time.”
