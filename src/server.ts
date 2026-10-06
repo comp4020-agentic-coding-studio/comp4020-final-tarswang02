@@ -12,6 +12,7 @@ import { renderQuestionDetail } from "./views/question-detail.ts";
 import type { QuestionDetail, ClaimRow, EvidenceRow } from "./views/question-detail.ts";
 import { renderNotFound } from "./views/not-found.ts";
 import { renderReadme } from "./views/readme.ts";
+import { registerApiRoutes } from "./api.ts";
 
 const router = new Router();
 
@@ -192,6 +193,10 @@ router.post("/actor/name", async (ctx) => {
 router.get("/readme/", async (ctx) => {
   send(ctx.res, 200, renderReadme());
 });
+
+// Gate 2: external agent HTTP API, additive — see src/api.ts. Scoped agent
+// bearer tokens only; never the human session cookie above.
+registerApiRoutes(router);
 
 const server = createServer((req, res) => {
   router.dispatch(req, res, (ctx) => {

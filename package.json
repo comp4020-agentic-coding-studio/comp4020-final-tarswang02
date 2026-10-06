@@ -10,7 +10,8 @@
     "test": "vitest run",
     "dev": "node --watch src/server.ts",
     "build": "tsc --noEmit",
-    "start": "node src/server.ts"
+    "start": "node src/server.ts",
+    "demo:agent": "node scripts/demo-agent-client.ts"
   },
   "dependencies": {
     "marked": "^16.4.1"
