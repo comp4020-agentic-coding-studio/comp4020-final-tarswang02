@@ -82,6 +82,9 @@ it("creates a question, a claim and evidence, then re-reads the full trace", asy
   expect(html).toContain(evidenceBody);
   expect(html).toContain(sourceUrl);
   expect(html).toMatch(/Visitor-\d{4}/);
+  // The add-claim field must have a real <label for> association, not just
+  // placeholder text, so keyboard/screen-reader users can reach it.
+  expect(html).toMatch(/<label for="claim-body-[^"]+">Claim<\/label>/);
 });
 
 it("rejects a non-http(s) source URL instead of silently storing it", async () => {

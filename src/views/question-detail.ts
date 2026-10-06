@@ -100,7 +100,8 @@ export function renderQuestionDetail(
     <h2>Add a claim</h2>
     <form method="post" action="/questions/${q.id}/claims">
       <p>
-        <textarea name="body" rows="3" required maxlength="4000"></textarea>
+        <label for="claim-body-${q.id}">Claim</label><br />
+        <textarea id="claim-body-${q.id}" name="body" rows="3" required maxlength="4000"></textarea>
       </p>
       <button type="submit">Add claim</button>
     </form>

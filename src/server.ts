@@ -189,6 +189,8 @@ router.post("/claims/:id/evidence", async (ctx) => {
 
 router.post("/actor/name", async (ctx) => {
   const actor = resolveActor(ctx.req, ctx.res);
+  if (!allow(clientKey(ctx))) return send(ctx.res, 429, "too many requests");
+
   const form = parseForm(await readBody(ctx.req));
   try {
     const name = requireLength(form.name ?? "", "name", 1, 40);
@@ -197,7 +199,15 @@ router.post("/actor/name", async (ctx) => {
     // keep the previous name silently; this is a low-stakes convenience field
   }
   const referer = ctx.req.headers.referer;
-  redirect(ctx.res, referer && referer.startsWith("http") ? new URL(referer).pathname : "/questions");
+  let redirectTo = "/questions";
+  if (referer && referer.startsWith("http")) {
+    try {
+      redirectTo = new URL(referer).pathname;
+    } catch {
+      // malformed Referer header; fall back to the default above
+    }
+  }
+  redirect(ctx.res, redirectTo);
 });
 
 router.get("/readme/", async (ctx) => {
