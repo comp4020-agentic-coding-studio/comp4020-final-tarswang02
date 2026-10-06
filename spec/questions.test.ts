@@ -85,6 +85,18 @@ it("creates a question, a claim and evidence, then re-reads the full trace", asy
   // The add-claim field must have a real <label for> association, not just
   // placeholder text, so keyboard/screen-reader users can reach it.
   expect(html).toMatch(/<label for="claim-body-[^"]+">Claim<\/label>/);
+  // Evidence read back within seconds of being written briefly illuminates
+  // (docs/ART_DIRECTION.md's motion rule); status is still carried by the
+  // "Supports"/"Challenges" text and border, not by this class alone.
+  expect(html).toMatch(/class="evidence supports is-new"/);
+  // The claim is the primary node and its real evidence hangs off a spine —
+  // both must still be generated from this claim's own data, not a
+  // decorative/generated graph.
+  expect(html).toMatch(/<span class="node-dot" aria-hidden="true"><\/span>/);
+  expect(html).toContain(`<div class="evidence-branches">`);
+  // Add-evidence is tucked behind a native, keyboard-operable disclosure —
+  // confirm the write path is still present and reachable, just quieter.
+  expect(html).toMatch(/<details class="add-evidence">\s*<summary>Add evidence<\/summary>/);
 });
 
 it("rejects a non-http(s) source URL instead of silently storing it", async () => {
