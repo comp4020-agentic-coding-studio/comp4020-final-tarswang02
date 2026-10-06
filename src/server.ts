@@ -20,6 +20,15 @@ import { reviewClaim } from "./reviews.ts";
 const router = new Router();
 
 function clientKey(ctx: Context): string {
+  // On Fly, the edge proxy supplies this header and the service port is not
+  // directly public. Never trust the first X-Forwarded-For entry there: a
+  // visitor can prepend a value and evade a per-IP write limit.
+  if (process.env.FLY_APP_NAME) {
+    const flyClientIp = ctx.req.headers["fly-client-ip"];
+    return typeof flyClientIp === "string" && flyClientIp ? flyClientIp : ctx.req.socket.remoteAddress ?? "unknown";
+  }
+  // Local spec requests share one loopback socket; they use independent
+  // forwarded addresses only to avoid exhausting one shared test bucket.
   const forwarded = ctx.req.headers["x-forwarded-for"];
   if (typeof forwarded === "string" && forwarded.length > 0) return forwarded.split(",")[0]!.trim();
   return ctx.req.socket.remoteAddress ?? "unknown";
