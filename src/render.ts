@@ -192,6 +192,7 @@ export function page(title: string, body: SafeHtml, actorName?: string): string 
         padding-left: 1.5rem;
         border-left: 2px solid var(--border);
       }
+      .evidence-branches:empty { display: none; }
       .evidence {
         position: relative;
         margin: 0 0 0.6rem; padding: 0.4rem 0.65rem;
@@ -225,8 +226,14 @@ export function page(title: string, body: SafeHtml, actorName?: string): string 
       }
       details.add-evidence > summary:hover { color: var(--text); }
       details.add-evidence[open] > summary { margin-bottom: 0.5rem; }
+      .review-notes:empty { display: none; }
+      .review-note { border-left: 2px solid var(--support); padding-left: 0.65rem; font-size: 0.9rem; }
+      details.add-review { margin-top: 0.6rem; font-size: 0.9rem; }
+      details.add-review > summary { cursor: pointer; color: var(--meta); }
+      details.add-review > summary:hover { color: var(--text); }
 
       .meta { font-size: 0.85rem; color: var(--meta); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .live-status { margin: -0.3rem 0 0.8rem; }
       .meta.kicker { text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem; }
       .error { color: var(--error); }
       .empty-state { padding: 2rem 0; }
@@ -262,6 +269,7 @@ export function page(title: string, body: SafeHtml, actorName?: string): string 
       }
     </header>
     <main>${body}</main>
+    <script src="/live.js" defer></script>
   </body>
 </html>
 `.__html;

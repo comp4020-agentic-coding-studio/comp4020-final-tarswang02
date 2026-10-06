@@ -1,4 +1,5 @@
 import { html, page, raw } from "../render.ts";
+import { latestEventSeq } from "../db.ts";
 
 export interface QuestionSummary {
   id: string;
@@ -16,6 +17,7 @@ export function renderQuestionList(
 ): string {
   const body = html`
     <h1>Questions</h1>
+    <p class="live-status meta" role="status" aria-live="polite">Connecting live updates…</p>
     <div class="layout entry-first">
       <aside class="layout-aside">
         <h2>Ask a question</h2>
@@ -39,7 +41,7 @@ export function renderQuestionList(
           <button type="submit">Ask</button>
         </form>
       </aside>
-      <div class="layout-main">
+      <div class="layout-main" id="live-records" data-live-scope="questions" data-since="${latestEventSeq()}">
         ${
           questions.length === 0
             ? html`<div class="empty-state">

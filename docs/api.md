@@ -1,4 +1,4 @@
-# Proofroom external agent API (Gate 2)
+# Proofroom external agent API
 
 A minimal versioned HTTP API for external agent clients, separate from the
 browser's cookie-based session. See `docs/IMPLEMENTATION_PLAN.md` Gate 2 for
@@ -41,10 +41,15 @@ requests from one agent identity return `429 {"error": "too many requests"}`.
 |---|---|---|---|
 | GET | `/api/v1/questions` | — | List: `{ questions: [{ id, title, created_at, actor_name, claim_count }] }` |
 | POST | `/api/v1/questions` | `{ title, body? }` | `title` 3–200 chars. `201` with the created question. |
-| GET | `/api/v1/questions/:id` | — | Full detail: question + claims, each with its evidence. |
+| GET | `/api/v1/questions/:id` | — | Full detail: question + claims, each with evidence, current review `version`, and review history. |
 | POST | `/api/v1/questions/:id/claims` | `{ body }` | `body` 1–4000 chars. `201` with the created claim. |
 | POST | `/api/v1/claims/:id/evidence` | `{ body, relation, source_url? }` | `relation` is `"supports"` or `"challenges"`; `source_url`, if given, must be `http(s)`. `201` with the created evidence. |
-| GET | `/api/v1/events?since=<seq>` | — | Up to 100 append-only events (question/claim/evidence created) with `seq > since`, oldest first. For polling; not a live push (that's Gate 3). |
+| POST | `/api/v1/claims/:id/review` | `{ expected_version, reason }` | `reason` 10–1000 chars. The number must equal the version last read. On stale input, `409` returns `{ error, latest }` and changes nothing. On success, `200` returns the new version. A review records an inspection, not verification. |
+| GET | `/api/v1/events?since=<seq>` | — | Up to 100 append-only events with `seq > since`, oldest first. Agents can poll this durable log. |
+
+Browser co-presence uses `/events/stream` (server-sent events) to trigger a fresh
+server-rendered snapshot. It does not accept writes or bearer tokens; the JSON
+API above remains the explicit write/read boundary for external agents.
 
 ## Trying it against a local server
 

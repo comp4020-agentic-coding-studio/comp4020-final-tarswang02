@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { db, recordEvent } from "./db.ts";
 import { resolveActor, renameActor } from "./actors.ts";
 import { Router, readBody, parseForm } from "./router.ts";
@@ -13,6 +14,8 @@ import type { QuestionDetail, ClaimRow, EvidenceRow } from "./views/question-det
 import { renderNotFound } from "./views/not-found.ts";
 import { renderReadme } from "./views/readme.ts";
 import { registerApiRoutes } from "./api.ts";
+import { streamEvents } from "./live.ts";
+import { reviewClaim } from "./reviews.ts";
 
 const router = new Router();
 
@@ -46,7 +49,7 @@ function loadQuestionDetail(id: string): QuestionDetail | undefined {
 
   const claimRows = db
     .prepare(
-      `SELECT c.id, c.body, c.created_at, c.reviewed_at, a.name AS actor_name
+      `SELECT c.id, c.body, c.created_at, c.reviewed_at, c.version, a.name AS actor_name
        FROM claims c JOIN actors a ON a.id = c.actor_id
        WHERE c.question_id = ? ORDER BY c.created_at ASC`,
     )
@@ -55,6 +58,7 @@ function loadQuestionDetail(id: string): QuestionDetail | undefined {
     body: string;
     created_at: string;
     reviewed_at: string | null;
+    version: number;
     actor_name: string;
   }>;
 
@@ -66,7 +70,12 @@ function loadQuestionDetail(id: string): QuestionDetail | undefined {
          WHERE e.claim_id = ? ORDER BY e.created_at ASC`,
       )
       .all(c.id) as unknown as EvidenceRow[];
-    return { ...c, evidence: evidenceRows };
+    const reviews = db.prepare(
+      `SELECT r.version, r.reason, r.created_at, a.name AS actor_name
+       FROM claim_reviews r JOIN actors a ON a.id = r.actor_id
+       WHERE r.claim_id = ? ORDER BY r.version ASC`,
+    ).all(c.id) as ClaimRow["reviews"];
+    return { ...c, evidence: evidenceRows, reviews };
   });
 
   return { ...question, claims };
@@ -176,7 +185,7 @@ router.post("/claims/:id/evidence", async (ctx) => {
       `INSERT INTO evidence (id, claim_id, relation, body, source_url, actor_id, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).run(id, claimId, relation, body, sourceUrl, actor.id, createdAt);
-    recordEvent("evidence_created", { id, claimId, relation }, actor.id);
+    recordEvent("evidence_created", { id, claimId, questionId: claim.question_id, relation }, actor.id);
     redirect(ctx.res, `/questions/${claim.question_id}`);
   } catch (err) {
     if (err instanceof ValidationError) {
@@ -184,6 +193,46 @@ router.post("/claims/:id/evidence", async (ctx) => {
       return send(ctx.res, 400, renderQuestionDetail(detail, actor.name, err.message));
     }
     throw err;
+  }
+});
+
+router.post("/claims/:id/review", async (ctx) => {
+  const actor = resolveActor(ctx.req, ctx.res);
+  if (!allow(clientKey(ctx))) return send(ctx.res, 429, "too many requests");
+  const claimId = ctx.params.id!;
+  const form = parseForm(await readBody(ctx.req));
+  const current = db.prepare("SELECT question_id FROM claims WHERE id = ?").get(claimId) as
+    | { question_id: string }
+    | undefined;
+  if (!current) return send(ctx.res, 404, renderNotFound(actor.name));
+
+  const expected = form.expected_version ?? "";
+  const expectedVersion = /^(0|[1-9][0-9]*)$/.test(expected) ? Number(expected) : NaN;
+  const reasonDraft = form.reason ?? "";
+  try {
+    if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) {
+      throw new ValidationError("review version is invalid");
+    }
+    const reason = requireLength(reasonDraft, "review reason", 10, 1000);
+    const result = reviewClaim(claimId, expectedVersion, actor.id, reason);
+    if (result.kind === "not_found") return send(ctx.res, 404, renderNotFound(actor.name));
+    if (result.kind === "conflict") {
+      return send(ctx.res, 409, renderQuestionDetail(
+        loadQuestionDetail(result.questionId)!, actor.name,
+        `Someone reviewed this claim first. Latest version is ${result.version}; inspect it before trying again.`,
+        { claimId, reason },
+      ));
+    }
+    recordEvent("claim_reviewed", { claimId, questionId: result.questionId, version: result.version }, actor.id);
+    redirect(ctx.res, `/questions/${result.questionId}`);
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return send(ctx.res, 400, renderQuestionDetail(
+        loadQuestionDetail(current.question_id)!, actor.name, error.message,
+        { claimId, reason: reasonDraft },
+      ));
+    }
+    throw error;
   }
 });
 
@@ -195,6 +244,7 @@ router.post("/actor/name", async (ctx) => {
   try {
     const name = requireLength(form.name ?? "", "name", 1, 40);
     renameActor(actor.id, name);
+    recordEvent("actor_renamed", { actorId: actor.id }, actor.id);
   } catch {
     // keep the previous name silently; this is a low-stakes convenience field
   }
@@ -213,6 +263,16 @@ router.post("/actor/name", async (ctx) => {
 router.get("/readme/", async (ctx) => {
   send(ctx.res, 200, renderReadme());
 });
+
+const liveClient = readFileSync(new URL("./live-client.js", import.meta.url), "utf8");
+router.get("/live.js", async (ctx) => {
+  ctx.res.writeHead(200, {
+    "Content-Type": "text/javascript; charset=utf-8",
+    "Cache-Control": "public, max-age=60",
+  });
+  ctx.res.end(liveClient);
+});
+router.get("/events/stream", async (ctx) => streamEvents(ctx));
 
 // Gate 2: external agent HTTP API, additive — see src/api.ts. Scoped agent
 // bearer tokens only; never the human session cookie above.

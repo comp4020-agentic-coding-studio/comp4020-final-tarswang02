@@ -11,6 +11,7 @@ import {
   validateRelation,
 } from "./validate.ts";
 import { allow } from "./ratelimit.ts";
+import { reviewClaim } from "./reviews.ts";
 
 // Gate 2: a minimal versioned JSON API for external agent clients. Every
 // route requires a scoped agent bearer token (src/apiAuth.ts) — never the
@@ -119,7 +120,7 @@ export function registerApiRoutes(router: Router): void {
 
       const claimRows = db
         .prepare(
-          `SELECT c.id, c.body, c.created_at, c.reviewed_at, a.name AS actor_name
+          `SELECT c.id, c.body, c.created_at, c.reviewed_at, c.version, a.name AS actor_name
            FROM claims c JOIN actors a ON a.id = c.actor_id
            WHERE c.question_id = ? ORDER BY c.created_at ASC`,
         )
@@ -128,6 +129,7 @@ export function registerApiRoutes(router: Router): void {
         body: string;
         created_at: string;
         reviewed_at: string | null;
+        version: number;
         actor_name: string;
       }>;
 
@@ -139,7 +141,12 @@ export function registerApiRoutes(router: Router): void {
              WHERE e.claim_id = ? ORDER BY e.created_at ASC`,
           )
           .all(claim.id);
-        return { ...claim, evidence };
+        const reviews = db.prepare(
+          `SELECT r.version, r.reason, r.created_at, a.name AS actor_name
+           FROM claim_reviews r JOIN actors a ON a.id = r.actor_id
+           WHERE r.claim_id = ? ORDER BY r.version ASC`,
+        ).all(claim.id);
+        return { ...claim, evidence, reviews };
       });
 
       sendJson(ctx.res, 200, { ...question, claims });
@@ -172,6 +179,31 @@ export function registerApiRoutes(router: Router): void {
   );
 
   router.post(
+    "/api/v1/claims/:id/review",
+    withAgent(async (ctx, actor) => {
+      const input = await readJson(ctx.req);
+      const expectedVersion = input.expected_version;
+      if (!Number.isSafeInteger(expectedVersion) || (expectedVersion as number) < 1) {
+        throw new ValidationError("expected_version must be a positive integer");
+      }
+      const reason = requireLength(str(input.reason), "review reason", 10, 1000);
+      const result = reviewClaim(ctx.params.id!, expectedVersion as number, actor.id, reason);
+      if (result.kind === "not_found") return sendJson(ctx.res, 404, { error: "claim not found" });
+      if (result.kind === "conflict") {
+        const latest = db.prepare(
+          `SELECT c.version, c.reviewed_at, c.review_reason, a.name AS reviewed_by
+           FROM claims c LEFT JOIN actors a ON a.id = c.reviewed_by WHERE c.id = ?`,
+        ).get(ctx.params.id!);
+        return sendJson(ctx.res, 409, { error: "stale review", latest });
+      }
+      recordEvent("claim_reviewed", {
+        claimId: ctx.params.id!, questionId: result.questionId, version: result.version,
+      }, actor.id);
+      sendJson(ctx.res, 200, { claim_id: ctx.params.id!, version: result.version, reviewed_by: actor.name });
+    }),
+  );
+
+  router.post(
     "/api/v1/claims/:id/evidence",
     withAgent(async (ctx, actor) => {
       const claimId = ctx.params.id!;
@@ -190,7 +222,7 @@ export function registerApiRoutes(router: Router): void {
         `INSERT INTO evidence (id, claim_id, relation, body, source_url, actor_id, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       ).run(id, claimId, relation, body, sourceUrl, actor.id, createdAt);
-      recordEvent("evidence_created", { id, claimId, relation }, actor.id);
+      recordEvent("evidence_created", { id, claimId, questionId: claim.question_id, relation }, actor.id);
       sendJson(ctx.res, 201, {
         id,
         claim_id: claimId,
