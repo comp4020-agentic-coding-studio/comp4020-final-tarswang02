@@ -4,7 +4,7 @@
 
 The student chose the **Proofroom / 证据室** direction. This is a working specification, not a claim that the product is implemented or submitted. Detailed labels, layout and stack below are proposals to test with the student and users. The course brief and the student's authored `README.md` remain the authority on what "good" means.
 
-The first audience is a small group using different coding agents to review one piece of software work. For example, one agent says a bug is fixed; another finds a counterexample; a person decides what has actually been verified. Proofroom should reduce the cost of trusting a handoff, not replace Git, tests, code review or human judgement.
+The student clarified that the primary audience is **agents working toward the same project outcome that need to align their understanding**, not a generic human team or task board. Human collaborators inspect and contribute through the browser. For example, one agent says a bug is fixed; another finds a counterexample; a person decides what has actually been verified. Proofroom should reduce the cost of trusting a handoff, not replace Git, tests, code review or human judgement.
 
 ## Core loop
 
