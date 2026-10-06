@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import { db } from "./db.ts";
+import { markRequestActor } from "./observability.ts";
 
 export interface Actor {
   id: string;
@@ -38,7 +39,10 @@ export function resolveActor(req: IncomingMessage, res: ServerResponse): Actor {
     const row = db.prepare("SELECT id, name FROM actors WHERE id = ?").get(sessionId) as
       | Actor
       | undefined;
-    if (row) return row;
+    if (row) {
+      markRequestActor(req, row.name);
+      return row;
+    }
   }
 
   const id = randomUUID();
@@ -52,6 +56,7 @@ export function resolveActor(req: IncomingMessage, res: ServerResponse): Actor {
     "Set-Cookie",
     `${COOKIE_NAME}=${encodeURIComponent(id)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000`,
   );
+  markRequestActor(req, name);
   return { id, name };
 }
 

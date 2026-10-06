@@ -16,6 +16,7 @@ import { renderReadme } from "./views/readme.ts";
 import { registerApiRoutes } from "./api.ts";
 import { streamEvents } from "./live.ts";
 import { reviewClaim } from "./reviews.ts";
+import { markRequestActor, observeRequest } from "./observability.ts";
 
 const router = new Router();
 
@@ -253,6 +254,7 @@ router.post("/actor/name", async (ctx) => {
   try {
     const name = requireLength(form.name ?? "", "name", 1, 40);
     renameActor(actor.id, name);
+    markRequestActor(ctx.req, name);
     recordEvent("actor_renamed", { actorId: actor.id }, actor.id);
   } catch {
     // keep the previous name silently; this is a low-stakes convenience field
@@ -270,6 +272,7 @@ router.post("/actor/name", async (ctx) => {
 });
 
 router.get("/readme/", async (ctx) => {
+  resolveActor(ctx.req, ctx.res);
   send(ctx.res, 200, renderReadme());
 });
 
@@ -288,6 +291,7 @@ router.get("/events/stream", async (ctx) => streamEvents(ctx));
 registerApiRoutes(router);
 
 const server = createServer((req, res) => {
+  observeRequest(req, res);
   router.dispatch(req, res, (ctx) => {
     send(ctx.res, 404, renderNotFound());
   }).catch((err) => {

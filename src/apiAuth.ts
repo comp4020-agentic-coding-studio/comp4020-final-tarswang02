@@ -1,6 +1,7 @@
 import type { IncomingMessage } from "node:http";
 import { db } from "./db.ts";
 import type { Actor } from "./actors.ts";
+import { markRequestActor } from "./observability.ts";
 
 // Gate 2: external agent credentials are scoped and separate from any human
 // session cookie, and separate from the course Claude development token —
@@ -55,5 +56,7 @@ export function resolveAgentActor(req: IncomingMessage): Actor | undefined {
   const tokens = parseAgentTokens();
   const label = tokens.get(token);
   if (!label) return undefined;
-  return ensureAgentActor(label);
+  const actor = ensureAgentActor(label);
+  markRequestActor(req, actor.name);
+  return actor;
 }
