@@ -74,6 +74,13 @@ export interface StoredEvent {
   created_at: string;
 }
 
+// Historical actor_renamed rows contain the browser session cookie value.
+// Never expose it through either replay or the agent events API.
+export function publicEventPayload(type: string, payload: unknown): unknown {
+  if (type === "actor_renamed") return {};
+  return payload;
+}
+
 const eventListeners = new Set<(event: StoredEvent) => void>();
 
 export function latestEventSeq(): number {
@@ -85,7 +92,7 @@ export function eventsAfter(seq: number, limit = 200): StoredEvent[] {
   const rows = db.prepare(
     "SELECT seq, type, payload, created_at FROM events WHERE seq > ? ORDER BY seq ASC LIMIT ?",
   ).all(seq, limit) as Array<{ seq: number; type: string; payload: string; created_at: string }>;
-  return rows.map((row) => ({ ...row, payload: JSON.parse(row.payload) }));
+  return rows.map((row) => ({ ...row, payload: publicEventPayload(row.type, JSON.parse(row.payload)) }));
 }
 
 export function subscribeEvents(listener: (event: StoredEvent) => void): () => void {
@@ -98,7 +105,7 @@ export function recordEvent(type: string, payload: unknown, actorId: string): nu
   const result = db.prepare(
     "INSERT INTO events (type, payload, actor_id, created_at) VALUES (?, ?, ?, ?)",
   ).run(type, JSON.stringify(payload), actorId, createdAt);
-  const event = { seq: Number(result.lastInsertRowid), type, payload, created_at: createdAt };
+  const event = { seq: Number(result.lastInsertRowid), type, payload: publicEventPayload(type, payload), created_at: createdAt };
   // A disconnected SSE response must never turn an already-committed write
   // into a 500 (which could make the caller retry and duplicate its record).
   for (const listener of eventListeners) {

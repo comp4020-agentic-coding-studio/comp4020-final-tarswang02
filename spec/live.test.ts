@@ -124,3 +124,41 @@ it("replays missed durable events after a client reconnects", async () => {
     stop.abort();
   }
 });
+
+it("never exposes a browser session token in live rename notifications or replay", async () => {
+  const visitor = await freshSession(`Private-${Date.now()}`);
+  const sessionId = visitor.split("=")[1]!;
+  const initial = await (await fetch(new URL("/questions", baseUrl), { headers: { Cookie: visitor } })).text();
+  const since = initial.match(/data-live-scope="questions" data-since="(\d+)"/)?.[1];
+  expect(since).toBeDefined();
+
+  const stop = new AbortController();
+  const timer = setTimeout(() => stop.abort(), 3_000);
+  try {
+    const stream = await fetch(new URL(`/events/stream?since=${since}`, baseUrl), {
+      headers: { Cookie: visitor }, signal: stop.signal,
+    });
+    expect(stream.status).toBe(200);
+    const nextEvent = eventReader(stream.body!.getReader());
+    const rename = await fetch(new URL("/actor/name", baseUrl), {
+      method: "POST",
+      headers: { Cookie: visitor, "Content-Type": "application/x-www-form-urlencoded", "X-Forwarded-For": testSource },
+      body: new URLSearchParams({ name: `Renamed-${Date.now()}` }),
+      redirect: "manual",
+    });
+    expect(rename.status).toBe(303);
+    let event;
+    do { event = await nextEvent(); } while (event.type !== "actor_renamed");
+    expect(JSON.stringify(event)).not.toContain(sessionId);
+    expect(event.payload).toEqual({});
+
+    const replay = await fetch(new URL(`/events/stream?since=${since}`, baseUrl), {
+      headers: { Cookie: visitor }, signal: stop.signal,
+    });
+    const replayEvent = await eventReader(replay.body!.getReader())();
+    expect(JSON.stringify(replayEvent)).not.toContain(sessionId);
+  } finally {
+    clearTimeout(timer);
+    stop.abort();
+  }
+});

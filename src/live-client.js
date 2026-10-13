@@ -14,6 +14,7 @@
   let queued = false;
   const scope = region.dataset.liveScope;
   const questionId = region.dataset.questionId;
+  const snapshotPath = scope === "questions" ? "/questions" : `/questions/${encodeURIComponent(questionId)}`;
 
   function mergeQuestions(next) {
     const incoming = next.querySelector(".question-list");
@@ -85,7 +86,7 @@
     if (refreshing) { queued = true; return; }
     refreshing = true;
     try {
-      const response = await fetch(location.pathname, { cache: "no-store", credentials: "same-origin" });
+      const response = await fetch(snapshotPath, { cache: "no-store", credentials: "same-origin" });
       if (!response.ok) throw new Error(`snapshot ${response.status}`);
       const documentCopy = new DOMParser().parseFromString(await response.text(), "text/html");
       const next = documentCopy.querySelector("#live-records[data-live-scope]");

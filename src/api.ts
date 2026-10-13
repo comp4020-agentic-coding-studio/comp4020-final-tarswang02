@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Context, Router } from "./router.ts";
 import { readBody } from "./router.ts";
-import { db, recordEvent } from "./db.ts";
+import { db, publicEventPayload, recordEvent } from "./db.ts";
 import { resolveAgentActor } from "./apiAuth.ts";
 import type { Actor } from "./actors.ts";
 import {
@@ -256,7 +256,7 @@ export function registerApiRoutes(router: Router): void {
         created_at: string;
         actor_name: string;
       }>;
-      const events = rows.map((row) => ({ ...row, payload: JSON.parse(row.payload) }));
+      const events = rows.map((row) => ({ ...row, payload: publicEventPayload(row.type, JSON.parse(row.payload)) }));
       sendJson(ctx.res, 200, { events });
     }),
   );

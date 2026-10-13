@@ -255,7 +255,7 @@ router.post("/actor/name", async (ctx) => {
     const name = requireLength(form.name ?? "", "name", 1, 40);
     renameActor(actor.id, name);
     markRequestActor(ctx.req, name);
-    recordEvent("actor_renamed", { actorId: actor.id }, actor.id);
+    recordEvent("actor_renamed", {}, actor.id);
   } catch {
     // keep the previous name silently; this is a low-stakes convenience field
   }
