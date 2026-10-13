@@ -43,6 +43,10 @@ text is added, it needs its own supersession or version rule before release.
 `spec/reviews.test.ts` uses two browser sessions to accept one review, reject
 the stale second reason with 409, preserve its draft, then accept a retry and
 read both history entries. A separate local agent API check observed 200 for
-the first review and 409 for the stale one. This has **not** yet been tested
-on the deployed Fly site; a real two-person pod run and reconnection check
-remain necessary before claiming Crit 9 delivery.
+the first review and 409 for the stale one. On 14 October 2026, two isolated
+Chrome sessions against Fly also accepted the first review, returned 409 for
+the stale second reason, preserved its draft, and displayed new evidence
+after that conflict without reload. A controlled network disconnect recovered
+the missing contribution and retained draft/focus. See the
+[browser verification record](../verification/crit-9-browser-2026-10-14.md).
+A two-person pod run on physical devices remains unverified.

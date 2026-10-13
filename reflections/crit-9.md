@@ -18,11 +18,13 @@ Local two-browser use showed new questions and claims arriving without reload
 while a draft and keyboard focus remained intact. Automated checks exercised
 event replay and stale review rejection. A later correction kept an existing
 question link mounted during live list updates so remote activity would not
-steal focus. The real-time version was later deployed, and two independent
-HTTP sessions passed an online event/replay check. A separate local restart
-check showed an open browser recovering a durable record without reload or
-draft loss. A later source audit found that rename notifications exposed a
-session identifier, so public event paths now strip it even when replaying
-older events; a regression test covers live and replay routes. Online
-two-device timing and reconnection, and a real pod session, remain unverified.
-Those are the next checks, not claims inferred from local speed.
+steal focus. After deployment, two isolated Chrome sessions showed remote
+updates in 160–434 ms and kept syncing after a real 409. A controlled network
+cut recovered missing content without reload or draft loss. Injecting a 503,
+however, exposed a reconnect message with no actual retry. The correction
+recreates a closed stream with bounded backoff; the patched browser then
+connected on its second attempt. A source audit also removed session IDs
+from public events and historical replay. These corrections came from
+checking failure states, rather than trusting a successful connection.
+Two physical devices on different networks and the pod session remain
+unverified; the measured results are from one computer with separate sessions.
