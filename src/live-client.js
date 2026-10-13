@@ -102,23 +102,51 @@
     }
   }
 
-  const stream = new EventSource(`/events/stream?since=${encodeURIComponent(region.dataset.since || "0")}`);
-  stream.addEventListener("open", () => {
-    if (status) status.textContent = "Live updates on";
-    void refresh(); // Reconcile after disconnects even if replay is truncated.
-  });
-  stream.addEventListener("error", () => {
-    if (status) status.textContent = "Reconnecting live updates…";
-  });
-  stream.addEventListener("message", (message) => {
-    let event;
-    try { event = JSON.parse(message.data); } catch { return; }
-    const sameQuestion = event.payload?.questionId === questionId;
-    const affectsList = ["question_created", "claim_created", "actor_renamed"].includes(event.type);
-    if ((scope === "questions" && affectsList) ||
-        (scope === "question" && (sameQuestion || event.type === "actor_renamed"))) {
-      void refresh();
-    }
-  });
-  window.addEventListener("pagehide", () => stream.close(), { once: true });
+  let stream;
+  let retryTimer;
+  let retryDelay = 2000;
+  let stopped = false;
+
+  function connect() {
+    if (stopped) return;
+    const source = new EventSource(`/events/stream?since=${encodeURIComponent(region.dataset.since || "0")}`);
+    stream = source;
+    source.addEventListener("open", () => {
+      if (stopped || stream !== source) return;
+      retryDelay = 2000;
+      if (status) status.textContent = "Live updates on";
+      void refresh(); // Reconcile after disconnects even if replay is truncated.
+    });
+    source.addEventListener("error", () => {
+      if (stopped || stream !== source) return;
+      if (status) status.textContent = "Reconnecting live updates…";
+      // Transport failures reconnect natively. HTTP errors such as a temporary
+      // 503 leave EventSource CLOSED, so create a new connection with backoff.
+      if (source.readyState === EventSource.CLOSED && !retryTimer) {
+        source.close();
+        retryTimer = window.setTimeout(() => {
+          retryTimer = undefined;
+          connect();
+        }, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 30000);
+      }
+    });
+    source.addEventListener("message", (message) => {
+      if (stopped || stream !== source) return;
+      let event;
+      try { event = JSON.parse(message.data); } catch { return; }
+      const sameQuestion = event.payload?.questionId === questionId;
+      const affectsList = ["question_created", "claim_created", "actor_renamed"].includes(event.type);
+      if ((scope === "questions" && affectsList) ||
+          (scope === "question" && (sameQuestion || event.type === "actor_renamed"))) {
+        void refresh();
+      }
+    });
+  }
+  connect();
+  window.addEventListener("pagehide", () => {
+    stopped = true;
+    window.clearTimeout(retryTimer);
+    stream?.close();
+  }, { once: true });
 })();
