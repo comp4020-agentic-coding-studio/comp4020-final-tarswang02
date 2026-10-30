@@ -1,7 +1,7 @@
 # Proofroom action logs (Crit 10 preparation)
 
 The server writes one JSON line for each recognised browser or agent action.
-It includes `kind`, UTC `at`, pseudonymous `actor`, `action`, optional
+It includes `kind`, UTC `at`, `actor` (the visitor's chosen display name, or an agent's label), `action`, optional
 `target_id`, HTTP `status`, `outcome` and `duration_ms`. It deliberately omits
 request bodies, evidence text, source URLs, query strings, cookies, bearer
 tokens and IP addresses. Static assets, SSE keep-alives and event polling are
@@ -23,5 +23,6 @@ At the Crit 10 demo, ask pod members to open the *deployed* site on their own
 devices. Watch the log tail, identify who opened a question, who submitted a
 claim/evidence/review, and whether each write succeeded or was rejected. Do
 not click through the presenter UI during this exercise. A failing action
-logs its status; it does not imply the record was stored. This local logging
-implementation and test do not establish that Fly is receiving the lines yet.
+logs its status; it does not imply the record was stored. On 30 October 2026 a read-only visit to the deployed site produced
+`proofroom_action` lines in `flyctl logs`; write actions (claims, evidence,
+reviews) have not been checked on the deployed log.
