@@ -10,6 +10,12 @@ export interface Actor {
 
 const COOKIE_NAME = "proofroom_session";
 
+// Browser sessions are only ever issued as randomUUID() values (see the
+// `id = randomUUID()` below). Agent actors use a distinct `agent:<label>`
+// shape (src/apiAuth.ts). Without this check a forged cookie carrying an
+// agent id would resolve to that agent's actor via this lookup table.
+const SESSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function parseCookies(header: string | undefined): Record<string, string> {
   const out: Record<string, string> = {};
   if (!header) return out;
@@ -35,7 +41,7 @@ export function resolveActor(req: IncomingMessage, res: ServerResponse): Actor {
   const cookies = parseCookies(req.headers.cookie);
   const sessionId = cookies[COOKIE_NAME];
 
-  if (sessionId) {
+  if (sessionId && SESSION_ID_PATTERN.test(sessionId)) {
     const row = db.prepare("SELECT id, name FROM actors WHERE id = ?").get(sessionId) as
       | Actor
       | undefined;
