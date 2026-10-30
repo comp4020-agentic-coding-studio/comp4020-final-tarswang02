@@ -7,16 +7,22 @@ import { expect, inject, it } from "vitest";
 // `Cookie: proofroom_session=agent:<label>` was attributed to that agent.
 //
 // Matches the demo agent credential documented in docs/api.md's "Trying it
-// against a local server" section. Start the app under test with
+// against a local server" section. Exercising the forgery itself needs that
+// demo agent to actually be authenticated, so — unlike spec/api.test.ts's
+// auth-failure checks — this test is skipped (with a clear message) when the
+// server under test rejects the demo bearer credential, i.e. has no matching
+// AGENT_TOKENS configured. Start the app with
 //   AGENT_TOKENS=demo-token-change-me:demo-agent
 // (or override AGENT_TOKEN/AGENT_LABEL below to match a different value)
-// before running `pnpm check`.
+// for this test to run.
 const baseUrl = inject("baseUrl");
 const AGENT_TOKEN = process.env.AGENT_TOKEN ?? "demo-token-change-me";
 const AGENT_LABEL = process.env.AGENT_LABEL ?? "demo-agent";
 const testSource = `192.0.2.${Math.floor(Math.random() * 100) + 1}`;
 
-it("never attributes a forged agent-shaped cookie to the agent, while a real bearer call still is", async () => {
+it("never attributes a forged agent-shaped cookie to the agent, while a real bearer call still is", async ({
+  skip,
+}) => {
   // 1. A real bearer call still resolves to, and creates if needed, the
   //    agent's own actor row (`agent:<label>`) — the path this fix must not
   //    touch.
@@ -28,6 +34,11 @@ it("never attributes a forged agent-shaped cookie to the agent, while a real bea
     },
     body: JSON.stringify({ title: `Bearer attribution check ${Date.now()}` }),
   });
+  skip(
+    bearerRes.status === 401,
+    `no agent token configured for ${AGENT_LABEL} (server rejected the demo bearer credential with 401); ` +
+      "start the app with AGENT_TOKENS=demo-token-change-me:demo-agent to run this test",
+  );
   expect(bearerRes.status).toBe(201);
   const bearerBody = (await bearerRes.json()) as { actor_name: string };
   expect(bearerBody.actor_name).toBe(AGENT_LABEL);
